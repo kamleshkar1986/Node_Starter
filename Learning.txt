@@ -1,0 +1,10 @@
+Using The Debug Module :
+
+1) Run on command prompt for debug logs using the namespace like 
+    set DEBUG=rest-api-nodejs-mongodb:server & node ./bin/www
+        or
+    set DEBUG=rest-api-nodejs-mongodb:* & node ./bin/www
+        or
+    set DEBUG=* & node ./bin/www
+    where namespace is declared as :
+    var debug = require('debug')('rest-api-nodejs-mongodb:server');
