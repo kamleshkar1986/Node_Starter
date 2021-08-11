@@ -8,3 +8,8 @@ Using The Debug Module :
     set DEBUG=* & node ./bin/www
     where namespace is declared as :
     var debug = require('debug')('rest-api-nodejs-mongodb:server');
+
+2) For each new model we create these files
+    eg. 1) models/ProductModel.js
+        2) controllers/ProductController.js
+        3) routes/product.js
