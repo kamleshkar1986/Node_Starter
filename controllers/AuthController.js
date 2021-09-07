@@ -29,7 +29,7 @@ exports.register = [
 		.isEmail().withMessage("Email must be a valid email address.").custom((value) => {
 			return UserModel.findOne({email : value}).then((user) => {
 				if (user) {
-					return Promise.reject("E-mail already in use");
+					return Promise.reject("You are already registered with us. Please sign in.");
 				}
 			});
 		}),
@@ -42,11 +42,12 @@ exports.register = [
 	// Process request after validation and sanitization.
 	(req, res) => {
 		try {
+			console.log(req.body);
 			// Extract the validation errors from a request.
 			const errors = validationResult(req);
 			if (!errors.isEmpty()) {
 				// Display sanitized values/errors messages.
-				return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
+				return apiResponse.validationErrorWithData(res, "Auth", errors.array());
 			}else {
 				//hash input password
 				bcrypt.hash(req.body.password,10,function(err, hash) {
@@ -135,6 +136,7 @@ exports.login = [
 											expiresIn: process.env.JWT_TIMEOUT_DURATION,
 										};
 										const secret = process.env.JWT_SECRET;
+										console.log(secret);
 										//Generated JWT token with Payload and secret.
 										userData.token = jwt.sign(jwtPayload, secret, jwtData);
 										return apiResponse.successResponseWithData(res,"Login Success.", userData);
@@ -142,14 +144,14 @@ exports.login = [
 										return apiResponse.unauthorizedResponse(res, "Account is not active. Please contact admin.");
 									}
 								}else{
-									return apiResponse.unauthorizedResponse(res, "Account is not confirmed. Please confirm your account.");
+									return apiResponse.unauthorizedResponse(res, "OTP_Pending");
 								}
 							}else{
-								return apiResponse.unauthorizedResponse(res, "Email or Password wrong.");
+								return apiResponse.unauthorizedResponse(res, "Email or password is incorrect!");
 							}
 						});
 					}else{
-						return apiResponse.unauthorizedResponse(res, "Email or Password wrong.");
+						return apiResponse.unauthorizedResponse(res, "Email or password is incorrect!");
 					}
 				});
 			}
@@ -194,7 +196,7 @@ exports.verifyConfirm = [
 								});
 								return apiResponse.successResponse(res,"Account confirmed success.");
 							}else{
-								return apiResponse.unauthorizedResponse(res, "Otp does not match");
+								return apiResponse.unauthorizedResponse(res, "OTP_Wrong");
 							}
 						}else{
 							return apiResponse.unauthorizedResponse(res, "Account already confirmed.");

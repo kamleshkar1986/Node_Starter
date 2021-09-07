@@ -18,7 +18,7 @@ exports.successResponseWithData = function (res, msg, data) {
 exports.ErrorResponse = function (res, msg) {
 	var data = {
 		status: 0,
-		message: msg,
+		message: msg		 
 	};
 	return res.status(500).json(data);
 };
