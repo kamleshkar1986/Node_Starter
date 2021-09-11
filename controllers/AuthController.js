@@ -264,3 +264,110 @@ exports.resendConfirmOtp = [
 			return apiResponse.ErrorResponse(res, err);
 		}
 	}];
+
+	/**
+ * Send Password change OTP.
+ *
+ * @param {string}      email
+ *
+ * @returns {Object}
+ */
+exports.getPasswordChangeOtp = [
+	body("email").isLength({ min: 1 }).trim().withMessage("Email must be specified.")
+		.isEmail().withMessage("Email must be a valid email address."),
+	sanitizeBody("email").escape(),
+	(req, res) => {
+		try {
+			const errors = validationResult(req);
+			if (!errors.isEmpty()) {
+				return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
+			}else {
+				var query = {email : req.body.email};
+				UserModel.findOne(query).then(user => {
+					if (user) {
+						//Check if user in confirmed or not.
+						if(user.isConfirmed){
+							// Generate otp
+							let otp = utility.randomNumber(4);
+							// Html email body
+							let html = "<p>Please change your password using the following OTP.</p><p>OTP: "+otp+"</p>";
+							// Send confirmation email
+							mailer.send(
+								constants.confirmEmails.from, 
+								req.body.email,
+								"PicItUp - Change Password OTP",
+								html
+							).then(function(){								
+								user.changePasswordOTP = otp;
+								// Save user.
+								user.save(function (err) {
+									if (err) { return apiResponse.ErrorResponse(res, err); }
+									return apiResponse.successResponse(res,"Password change otp sent.");
+								});
+							});
+						}else{
+							return apiResponse.unauthorizedResponse(res, "Account is not activated.");
+						}
+					}else{
+						return apiResponse.unauthorizedResponse(res, "Specified email not found.");
+					}
+				});
+			}
+		} catch (err) {
+			return apiResponse.ErrorResponse(res, err);
+		}
+	}];
+
+/**
+ * Change Password using OTP. Meant to be used when users cannot provide auth token
+ * @param {string} email
+ * @param {string} otp  
+ * @param {string} newPassword
+ * @returns {Object}
+ */
+exports.changePasswordByOTP = [
+	body("email").isLength({ min: 1 }).trim().withMessage("Email must be specified.")
+		.isEmail().withMessage("Email must be a valid email address."),
+	body("otp").isLength({ min: 4 }).trim().withMessage("OTP must be a 4 digit  number."),
+	body("newPassword").isLength({ min: 6 }).trim().withMessage("Password must be 6 characters or greater."),
+	sanitizeBody("email").escape(),
+	sanitizeBody("otp").escape(),
+	sanitizeBody("newPassword").escape(),
+	(req, res) => {
+		try {
+			const errors = validationResult(req);
+			if (!errors.isEmpty()) {
+				return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
+			}else {
+				var query = {email : req.body.email};
+				UserModel.findOne(query).then(user => {
+					if (user) {
+						//Check already confirm or not.
+						if(user.isConfirmed){
+							//Check if otp matches the change passworf otp in the system
+							if(user.changePasswordOTP == req.body.otp){
+								bcrypt.hash(req.body.newPassword,10,function(err, hash) {
+								//Update user as confirmed
+									UserModel.findOneAndUpdate(query, {
+										password: hash,
+										changePasswordOTP: null 
+									}).catch(err => {
+										return apiResponse.ErrorResponse(res, err);
+									});
+									return apiResponse.successResponse(res,"Password changed successfully.");
+							 	});
+							}else{
+								return apiResponse.unauthorizedResponse(res, "Entered OTP did not match.");
+							}
+						}else{
+							return apiResponse.unauthorizedResponse(res, "Account is not active.");
+						}
+					}else{
+						return apiResponse.unauthorizedResponse(res, "The email Id is not registered.");
+					}
+				});
+			}
+		} catch (err) {
+			return apiResponse.ErrorResponse(res, err);
+		}
+	}];
