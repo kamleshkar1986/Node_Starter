@@ -129,6 +129,7 @@ exports.login = [
 											firstName: user.firstName,
 											lastName: user.lastName,
 											email: user.email,
+											mobile: user.mobile
 										};
 										//Prepare JWT token for authentication
 										const jwtPayload = userData;
