@@ -11,7 +11,7 @@ mongoose.set("useFindAndModify", false);
 exports.productList = [	
 	function (req, res) {
 		try {
-			Product.find({},"sNo title description price dispColor tileImgFile carousalImgFile").then((products)=>{
+			Product.find({},"sNo title description price dispColor aspectRatio tileImgFile carousalImgFile").then((products)=>{
 				if(products.length > 0){
 					return apiResponse.successResponseWithData(res, "Operation success", products);
 				}else{
