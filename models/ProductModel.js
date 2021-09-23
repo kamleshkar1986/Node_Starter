@@ -8,6 +8,7 @@ var ProductSchema = new Schema({
 	description: {type: String, required: true},
 	price: {type: Number, required: true},
 	dispColor: {type: String, required: true},
+	aspectRatio: {type: String, required: true},
 	tileImgFile: {type: String, required: true},
 	carousalImgFile: {type: String, required: true},
 }, {timestamps: true});
