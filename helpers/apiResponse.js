@@ -19,7 +19,7 @@ exports.ErrorResponse = function (res, msg) {
 	var data = {
 		status: 0,
 		message: msg		 
-	};
+	};	
 	return res.status(500).json(data);
 };
 

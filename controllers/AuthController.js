@@ -41,7 +41,7 @@ exports.register = [
 	sanitizeBody("password").escape(),
 	// Process request after validation and sanitization.
 	(req, res) => {
-		try {
+			try {
 			console.log(req.body);
 			// Extract the validation errors from a request.
 			const errors = validationResult(req);
