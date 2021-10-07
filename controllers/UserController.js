@@ -94,8 +94,7 @@ const auth = require("../middlewares/jwt");
 	body("city").isLength({ min: 1 }).trim().withMessage("City must be specified."),
 	body("state").isLength({ min: 1 }).trim().withMessage("State must be specified."),	
 	sanitizeBody("*").escape(),
-	(req, res) => {
-		console.log(req.body);
+	(req, res) => {		
 		try {
 			const errors = validationResult(req);
 			

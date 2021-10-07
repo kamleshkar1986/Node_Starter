@@ -27,6 +27,9 @@ var db = mongoose.connection;
 
 var app = express();
 
+//To allow cross-origin requests
+app.use(cors());
+
 //don't show the log when it is test
 if(process.env.NODE_ENV !== "test") {
 	app.use(logger("dev"));
@@ -36,8 +39,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-//To allow cross-origin requests
-app.use(cors());
+
 
 //Route Prefixes
 app.use("/", indexRouter);

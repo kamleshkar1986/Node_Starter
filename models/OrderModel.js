@@ -10,6 +10,14 @@ var OrderSchema = new Schema({
   orderStatus: { type: String, required: true },
   refundRequested: { type: Boolean, required: true },
   paymentStatus: { type: String, required: false },
+  customerRemarks: { type: String, required: false },
+  adminRemarks: { type: String, required: false }, 
+  cartDate: { type: Date, required: false },
+  orderDate: { type: Date, required: false },
+  refundReqDate: { type: Date, required: false },
+  deliveryDate: { type: Date, required: false },
+  refundDate:  { type: Date, required: false },
+  cancellationDate: { type: Date, required: false },
   user: { type: Schema.ObjectId, ref: "User", required: true },  
 }, { timestamps: true });
 
