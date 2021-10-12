@@ -19,9 +19,9 @@ const photoStorage = multer.diskStorage({
   destination: function (request, file, callback) {
     const filepath = "uploads/photos/" + request.user.firstName + '_' +
       request.user._id + "/" + request.body.itemName;
-      fs.exists(filepath, exist => {
+    fs.exists(filepath, exist => {
       if (!exist) {
-        return fs.mkdir(filepath, {recursive: true}, error => callback(error, filepath))
+        return fs.mkdir(filepath, { recursive: true }, error => callback(error, filepath))
       }
       return callback(null, filepath)
     })
@@ -35,7 +35,7 @@ const photoStorage = multer.diskStorage({
 });
 
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png"];
-const photoFileFilter = (req, file, cb) => {  
+const photoFileFilter = (req, file, cb) => {
   //File check only by file extension
   if (!ALLOWED_TYPES.includes(file.mimetype)) {
     cb(null, false);
@@ -152,12 +152,12 @@ function saveOrder(req, res, toCart) {
             order.orderDate = new Date();
           }
           order.save(function (err) {
-            if (err) { 
+            if (err) {
               deleteFiles(req.files);
-              return apiResponse.ErrorResponse(res, err); 
+              return apiResponse.ErrorResponse(res, err);
             }
             return apiResponse.successResponseWithData(res, "Order placed successfully!", new OrderData(order));
-          });         
+          });
         });
       }
       catch (err) {
@@ -178,4 +178,38 @@ function deleteFiles(files) {
   });
 }
 
-
+/**
+  * getUserOrders.
+  *
+* @param {string} emailId 
+ *
+  * @returns {Object}
+  */
+exports.getUserOrders = [
+  auth,
+  // body("email").trim().isLength({ min: 1 }).trim().withMessage("Email must be specified.")
+  //   .isEmail().withMessage("Email must be a valid email address."),
+  // sanitizeBody("*").escape(),
+  (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
+      } else {
+        console.log(req.user.email.trim(), req.query.email.trim());
+        if (req.user.email != req.query.email) {
+          return apiResponse.unauthorizedResponse(res, "You are not authorised to access!");
+        }
+        Order.find({ user: req.user._id }, "_id itemName units unitPrice totalPrice photos inCart refundRequested paymentStatus user orderStatus cartDate createdAt").then((orders) => {
+          if (orders.length > 0) {
+            return apiResponse.successResponseWithData(res, "Operation success", orders);
+          } else {
+            return apiResponse.successResponseWithData(res, "Operation success", []);
+          }
+        });
+      }
+    } catch (err) {
+      return apiResponse.ErrorResponse(res, err);
+    }
+  },
+];
