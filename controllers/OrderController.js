@@ -182,6 +182,7 @@ function deleteFiles(files) {
   * getUserOrders.
   *
 * @param {string} emailId 
+* @param {string} getCart
  *
   * @returns {Object}
   */
@@ -189,22 +190,70 @@ exports.getUserOrders = [
   auth,
   // body("email").trim().isLength({ min: 1 }).trim().withMessage("Email must be specified.")
   //   .isEmail().withMessage("Email must be a valid email address."),
-  // sanitizeBody("*").escape(),
+  // body("getCart").trim().isLength({ min: 1 }).trim().withMessage("Paramater getCart must be specified"),
+  sanitizeBody("*").escape(),
   (req, res, next) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
       } else {
-        console.log(req.user.email.trim(), req.query.email.trim());
         if (req.user.email != req.query.email) {
           return apiResponse.unauthorizedResponse(res, "You are not authorised to access!");
         }
-        Order.find({ user: req.user._id }, "_id itemName units unitPrice totalPrice photos inCart refundRequested paymentStatus user orderStatus cartDate createdAt").then((orders) => {
+        let sortField = '-orderDate';
+        if (req.query.getCart == 'true') {
+          sortField = '-cartDate';
+        }
+        console.log('SortBY', sortField);
+        Order.find({ user: req.user._id, inCart: req.query.getCart }).sort(sortField).exec((err, orders) => {
+
           if (orders.length > 0) {
             return apiResponse.successResponseWithData(res, "Operation success", orders);
           } else {
             return apiResponse.successResponseWithData(res, "Operation success", []);
+          }
+        });
+      }
+    } catch (err) {
+      return apiResponse.ErrorResponse(res, err);
+    }
+  },
+];
+
+/**
+  * buyFromCart.
+  *
+* @param {string} orderId 
+ *
+  * @returns {Object}
+  */
+exports.buyFromCart = [
+  auth,
+  body("orderId").trim().isLength({ min: 1 }).trim().withMessage("OrderId must be specified."),
+  sanitizeBody("*").escape(),
+  (req, res, next) => {
+    try {
+      console.log('buyDfrom cart');
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
+      } else {
+        console.log(req.body.orderId);
+        Order.findOne({ user: req.user._id, inCart: true, _id: req.body.orderId }).sort('-createdAt').exec((err, order) => {
+          if (order) {
+            const filter = { _id: order._id };
+            const update = { inCart: false, orderStatus: constants.OrderStatus.Placed, orderDate: new Date() };
+
+            console.log(filter, update);
+            Order.findOneAndUpdate(filter, update, {
+              new: true
+            }).exec((err, order) => {
+              console.log(order);
+            });
+            return apiResponse.successResponseWithData(res, "Operation success", order);
+          } else {
+            return apiResponse.ErrorResponse(res, "Invalid card data request.");
           }
         });
       }
