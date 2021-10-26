@@ -13,7 +13,7 @@ var UserSchema = new mongoose.Schema({
 	firstName: {type: String, required: true},
 	lastName: {type: String, required: true},
 	email: {type: String, required: true},	
-	mobile: {type: String, required: true},
+	mobile: {type: String, required: false},
 	password: {type: String, required: true},
 	deliveryAddress: {type: String, required: false},
 	isConfirmed: {type: Boolean, required: true, default: 0},
@@ -22,6 +22,7 @@ var UserSchema = new mongoose.Schema({
 	status: {type: Boolean, required: true, default: 1},
 	changePasswordOTP: {type: String, required:false},
 	address: {type: AddressSchema, required: false},
+	isAdminUser: {type: Boolean, required: true, default: 0},
 }, {timestamps: true});
 
 // Virtual for user's full name

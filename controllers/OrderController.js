@@ -204,10 +204,12 @@ exports.getUserOrders = [
         let sortField = '-orderDate';
         if (req.query.getCart == 'true') {
           sortField = '-cartDate';
+        }   
+        let query = { user: req.user._id, inCart: req.query.getCart };
+        if(req.user.isAdminUser) {
+          query = { inCart: req.query.getCart };
         }
-        console.log('SortBY', sortField);
-        Order.find({ user: req.user._id, inCart: req.query.getCart }).sort(sortField).exec((err, orders) => {
-
+        Order.find(query).sort(sortField).populate('user').exec((err, orders) => {        
           if (orders.length > 0) {
             return apiResponse.successResponseWithData(res, "Operation success", orders);
           } else {
@@ -233,19 +235,15 @@ exports.buyFromCart = [
   body("orderId").trim().isLength({ min: 1 }).trim().withMessage("OrderId must be specified."),
   sanitizeBody("*").escape(),
   (req, res, next) => {
-    try {
-      console.log('buyDfrom cart');
+    try {      
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
-      } else {
-        console.log(req.body.orderId);
+      } else {        
         Order.findOne({ user: req.user._id, inCart: true, _id: req.body.orderId }).sort('-createdAt').exec((err, order) => {
           if (order) {
             const filter = { _id: order._id };
             const update = { inCart: false, orderStatus: constants.OrderStatus.Placed, orderDate: new Date() };
-
-            console.log(filter, update);
             Order.findOneAndUpdate(filter, update, {
               new: true
             }).exec((err, order) => {

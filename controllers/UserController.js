@@ -42,7 +42,7 @@ const auth = require("../middlewares/jwt");
 				return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
 			}
 			else {
-				var query = {email : req.body.email};
+				var query = {email : req.body.email};				
 				User.findOne(query).then(user => {
 					if (user) {	
 						//Check account confirmation.
