@@ -17,6 +17,7 @@ var OrderSchema = new Schema({
   refundReqDate: { type: Date, required: false },
   deliveryDate: { type: Date, required: false },
   refundDate:  { type: Date, required: false },
+  statusChangeDate:  { type: Date, required: false },
   cancellationDate: { type: Date, required: false },
   user: { type: Schema.ObjectId, ref: "User", required: true },  
 }, { timestamps: true });

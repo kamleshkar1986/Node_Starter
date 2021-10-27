@@ -13,6 +13,7 @@ const mailer = require("../helpers/mailer");
 const { constants } = require("../helpers/constants");
 const Product = require("../models/ProductModel");
 const auth = require("../middlewares/jwt");
+const AdmZip = require('adm-zip');
 
 //Define where project photos will be stored
 const photoStorage = multer.diskStorage({
@@ -117,6 +118,9 @@ function saveOrder(req, res, toCart) {
       deleteFiles(req.files);
       return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
     }
+    if (req.user.isAdminUser) {
+      return apiResponse.unauthorizedResponse(res, "Buying/Carting not enabled for admin users!");
+    }
     (async () => {
       try {
         for (const file of req.files) {
@@ -204,12 +208,12 @@ exports.getUserOrders = [
         let sortField = '-orderDate';
         if (req.query.getCart == 'true') {
           sortField = '-cartDate';
-        }   
+        }
         let query = { user: req.user._id, inCart: req.query.getCart };
-        if(req.user.isAdminUser) {
+        if (req.user.isAdminUser) {
           query = { inCart: req.query.getCart };
         }
-        Order.find(query).sort(sortField).populate('user').exec((err, orders) => {        
+        Order.find(query).sort(sortField).populate('user').exec((err, orders) => {
           if (orders.length > 0) {
             return apiResponse.successResponseWithData(res, "Operation success", orders);
           } else {
@@ -235,11 +239,14 @@ exports.buyFromCart = [
   body("orderId").trim().isLength({ min: 1 }).trim().withMessage("OrderId must be specified."),
   sanitizeBody("*").escape(),
   (req, res, next) => {
-    try {      
+    try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
-      } else {        
+      } else {
+        if (req.user.isAdminUser) {
+          return apiResponse.unauthorizedResponse(res, "Buying not enabled for admin users.");
+        }
         Order.findOne({ user: req.user._id, inCart: true, _id: req.body.orderId }).sort('-createdAt').exec((err, order) => {
           if (order) {
             const filter = { _id: order._id };
@@ -260,3 +267,102 @@ exports.buyFromCart = [
     }
   },
 ];
+
+/**
+  * downloadOrderItems.
+  *
+* @param {string} orderId 
+ *
+  * @returns {Object}
+  */
+exports.downloadOrderItems = [
+  auth,
+  body("orderId").trim().isLength({ min: 1 }).trim().withMessage("OrderId must be specified."),
+  sanitizeBody("*").escape(),
+  (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
+      } else {
+        Order.findOne({ _id: req.body.orderId }).exec((err, order) => {
+          if (order) {
+            const zip = new AdmZip();
+            for (var i = 0; i < order.photos.length; i++) {
+              const path = __dirname.replace('controllers', '') + order.photos[i].replace(/\\/g, "\\");
+              console.log(path);
+              // zip.addLocalFile(__dirname + "/upload/" + uploadDir[i]);
+              zip.addLocalFile(path);
+            }
+
+            // Define zip file name
+            const downloadName = 'Order.zip';
+
+            const data = zip.toBuffer();
+
+            // save file zip in root directory
+            zip.writeZip(__dirname + "/" + downloadName);
+
+            // code to download zip file
+
+            res.set('Content-Type', 'application/octet-stream');
+            res.set('Content-Disposition', `attachment; filename=${downloadName}`);
+            res.set('file-name', downloadName)
+            res.set('Content-Length', data.length);
+            res.send(data);
+
+            // return apiResponse.successResponseWithData(res, "Operation success", order);
+          } else {
+            return apiResponse.ErrorResponse(res, "Invalid card data request.");
+          }
+        });
+      }
+    } catch (err) {
+      return apiResponse.ErrorResponse(res, err);
+    }
+  },
+];
+
+/**
+  * updateOrderStatus.
+  *
+* @param {string} orderId 
+* @param {string} orderStatus 
+ *
+  * @returns {Object}
+  */
+exports.updateOrderStatus = [
+  auth,
+  body("orderId").trim().isLength({ min: 1 }).trim().withMessage("OrderId must be specified."),
+  body("orderStatus").trim().isLength({ min: 3 }).trim().withMessage("Order status must be specified."),
+  sanitizeBody("*").escape(),
+  (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
+      } else {
+        if (!req.user.isAdminUser) {
+          return apiResponse.unauthorizedResponse(res, "You are not authorised to change order status.");
+        }
+        const newStatus =getKeyByValue(constants.OrderStatus, req.body.orderStatus);
+
+        const filter = { _id: req.body.orderId, inCart: false };
+        const update = { orderStatus: newStatus, statusChangeDate: new Date() };
+        Order.findOneAndUpdate(filter, update, {
+          new: true
+        }).exec((err, order) => {
+          console.log
+          //throw err;
+        });
+        return apiResponse.successResponse(res, "Order status changed successfully.");
+      }
+    } catch (err) {
+      return apiResponse.ErrorResponse(res, err);
+    }
+  },
+];
+
+function getKeyByValue(object, value) {
+  return Object.keys(object).find(key => object[key] === value);
+}
